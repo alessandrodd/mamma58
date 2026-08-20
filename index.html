@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#071a3d">
+  <meta name="description" content="58 Nerazzurri: il gioco di compleanno di mamma">
+  <title>58 Nerazzurri</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="stadium-lights" aria-hidden="true"></div>
+  <header class="topbar">
+    <button id="home-button" class="icon-button" aria-label="Torna alla coppa">⌂</button>
+    <div class="brand"><span class="mini-star">★</span> 58 NERAZZURRI</div>
+    <button id="sound-button" class="icon-button" aria-label="Attiva o disattiva i suoni">♪</button>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <footer>Con amore da Bruno, Alessandro e Christian · con Carmen e Helene</footer>
+
+  <dialog id="debug-dialog">
+    <form method="dialog" class="debug-card">
+      <div class="eyebrow">SPOGLIATOIO SEGRETO</div>
+      <h2>Modalità collaudo</h2>
+      <div id="debug-actions" class="debug-grid"></div>
+      <button class="button secondary" value="close">Chiudi</button>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

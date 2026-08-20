@@ -1,0 +1,8 @@
+{
+  "name": "mamma58",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "check": "node scripts/check.mjs"
+  }
+}
