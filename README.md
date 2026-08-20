@@ -1,6 +1,6 @@
 # 58 Nerazzurri
 
-Gioco di compleanno mobile-first per i 58 anni di mamma, realizzato da Bruno, Alessandro e Christian con la partecipazione di Carmen e Helene.
+Gioco di compleanno mobile-first per i 58 anni di mamma, realizzato da Bruno, Alessandro, Christian, Carmen ed Helene.
 
 ## Avvio locale
 
