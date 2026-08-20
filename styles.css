@@ -112,7 +112,7 @@ p { line-height: 1.5; }
 .selection-count { text-align:center; color:var(--oro); font-weight:900; }
 .final-card { text-align:center; padding:22px 12px; }
 .final-gifts { margin:20px 0; padding:17px; border:2px dashed var(--oro); border-radius:18px; font-size:1.1rem; line-height:1.7; }
-.victory-song { margin:20px 0; padding:14px; border-radius:18px; background:linear-gradient(135deg,rgba(0,104,217,.2),rgba(244,201,93,.1)); border:1px solid rgba(255,255,255,.13); }.victory-song strong,.victory-song span { display:block; }.victory-song span { margin:5px 0 12px; color:var(--muted); font-size:.84rem; }.victory-song iframe { display:block; border-radius:12px; }
+.victory-song { margin:20px 0; padding:14px; border-radius:18px; background:linear-gradient(135deg,rgba(0,104,217,.2),rgba(244,201,93,.1)); border:1px solid rgba(255,255,255,.13); }.victory-song strong,.victory-song span { display:block; }.victory-song span { margin:5px 0 12px; color:var(--muted); font-size:.84rem; }.victory-audio { display:block; width:100%; margin-bottom:10px; }.victory-song a { color:#8fc8ff; font-size:.78rem; }
 dialog { width:min(92vw,520px); border:1px solid rgba(255,255,255,.2); border-radius:22px; color:white; background:#08152e; }
 dialog::backdrop { background:rgba(0,0,0,.78); backdrop-filter:blur(5px); }
 .debug-card h2 { margin-top:5px; }.debug-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:16px 0; }.debug-grid button { min-height:48px; }
