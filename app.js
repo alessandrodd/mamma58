@@ -16,7 +16,7 @@
   let state = load();
   let timers = [], intervals = [];
   let titleTaps = 0;
-  let audio, musicTimer, musicStep=0, musicGeneration=0, currentMusicKey='welcome';
+  let audio, audioUnlocked=false, audioUnlocking=false, musicTimer, musicStep=0, musicGeneration=0, currentMusicKey='welcome';
   const musicTracks={
     welcome:{tempo:430,wave:'sine',notes:[262,330,392,330,294,349,440,349]},
     cup:{tempo:310,wave:'triangle',notes:[196,247,294,392,294,247,220,277]},
@@ -35,19 +35,33 @@
   function clearTimers() { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers=[]; intervals=[]; }
   function later(fn,ms) { const id=setTimeout(fn,ms); timers.push(id); return id; }
   function showToast(message) { toast.textContent=message; toast.classList.add('show'); later(()=>toast.classList.remove('show'),2200); }
-  function getAudio(){ audio ||= new (window.AudioContext||window.webkitAudioContext)(); return audio; }
+  function getAudio(){
+    if(!audio){const AudioContextClass=window.AudioContext||window.webkitAudioContext;if(!AudioContextClass)return null;audio=new AudioContextClass();}
+    return audio;
+  }
+  async function unlockAudio(){
+    if(!state.sound||audioUnlocking)return audioUnlocked;
+    if(audioUnlocked&&audio&&audio.state==='running')return true;
+    const context=getAudio();if(!context)return false;audioUnlocking=true;
+    try{
+      const buffer=context.createBuffer(1,1,22050),source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);source.start(0);
+      if(context.state!=='running')await context.resume();
+      audioUnlocked=context.state==='running';
+    }catch{audioUnlocked=false;}finally{audioUnlocking=false;}
+    if(audioUnlocked)startMusic(currentMusicKey);
+    return audioUnlocked;
+  }
   function tone(freq=440,duration=.09,type='sine') {
-    if (!state.sound) return;
-    getAudio();
-    const o=audio.createOscillator(), g=audio.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(.07,audio.currentTime); g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration); o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime+duration);
+    if (!state.sound||!audioUnlocked||!audio) return;
+    const o=audio.createOscillator(), g=audio.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(.09,audio.currentTime); g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration); o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime+duration);
   }
   function stopMusic(){ musicGeneration++;if(musicTimer)clearInterval(musicTimer);musicTimer=null;musicStep=0; }
   function startMusic(key){
-    currentMusicKey=key;stopMusic();if(!state.sound)return;const generation=musicGeneration;
-    const context=getAudio(),track=musicTracks[key]||musicTracks.cup;
-    const playNote=()=>{if(!state.sound)return;const now=context.currentTime,note=track.notes[musicStep%track.notes.length];const oscillator=context.createOscillator(),gain=context.createGain();oscillator.type=track.wave;oscillator.frequency.value=note;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.018,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+Math.min(.34,track.tempo/1000*.8));oscillator.connect(gain).connect(context.destination);oscillator.start(now);oscillator.stop(now+.38);if(musicStep%4===0){const bass=context.createOscillator(),bassGain=context.createGain();bass.type='sine';bass.frequency.value=note/2;bassGain.gain.setValueAtTime(.012,now);bassGain.gain.exponentialRampToValueAtTime(.0001,now+.3);bass.connect(bassGain).connect(context.destination);bass.start(now);bass.stop(now+.32);}musicStep++;};
+    currentMusicKey=key;stopMusic();if(!state.sound||!audioUnlocked||!audio)return;const generation=musicGeneration;
+    const context=audio,track=musicTracks[key]||musicTracks.cup;
+    const playNote=()=>{if(!state.sound||context.state!=='running')return;const now=context.currentTime,note=track.notes[musicStep%track.notes.length];const oscillator=context.createOscillator(),gain=context.createGain();oscillator.type=track.wave;oscillator.frequency.value=note;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.035,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+Math.min(.34,track.tempo/1000*.8));oscillator.connect(gain).connect(context.destination);oscillator.start(now);oscillator.stop(now+.38);if(musicStep%4===0){const bass=context.createOscillator(),bassGain=context.createGain();bass.type='sine';bass.frequency.value=note/2;bassGain.gain.setValueAtTime(.02,now);bassGain.gain.exponentialRampToValueAtTime(.0001,now+.3);bass.connect(bassGain).connect(context.destination);bass.start(now);bass.stop(now+.32);}musicStep++;};
     const begin=()=>{if(generation!==musicGeneration||key!==currentMusicKey||!state.sound)return;playNote();musicTimer=setInterval(playNote,track.tempo);};
-    if(context.state==='suspended')context.resume().then(begin).catch(()=>{});else begin();
+    if(context.state==='running')begin();
   }
   function finish(id) { if(!state.completed.includes(id)) state.completed.push(id); save(); tone(740,.15); later(()=>{ confetti(); renderCup(); },650); }
   function confetti() { for(let i=0;i<35;i++){ const e=document.createElement('i'); e.className='confetti'; e.style.left=Math.random()*100+'vw'; e.style.background=['#0879f9','#05070c','#f4c95d','#fff'][i%4]; e.style.animationDelay=Math.random()*.5+'s'; document.body.append(e); later(()=>e.remove(),3200); } }
@@ -57,7 +71,7 @@
 
   function renderWelcome() {
     clearTimers();startMusic('welcome'); app.innerHTML=`<section class="hero"><div class="eyebrow">20 AGOSTO 2026 · UNA GIORNATA SPECIALE</div><h1>Buon <span class="age">58°</span><br>compleanno!</h1><p class="lead">Sei convocata per la più importante sfida nerazzurra dell’anno: sei prove di memoria, musica, logica e passione interista.</p><div class="actions"><button id="start" class="button gold">Entra in campo</button></div><p class="instruction">Niente paura: puoi riprovare ogni sfida e il regalo non dipende dal punteggio.</p></section>`;
-    document.querySelector('#start').onclick=()=>{getAudio().resume();state.welcomed=true;save();renderCup();};
+    document.querySelector('#start').onclick=()=>{unlockAudio();state.welcomed=true;save();renderCup();};
   }
   function renderCup() {
     clearTimers();startMusic('cup'); const unlocked=state.completed.length===games.length;
@@ -153,7 +167,11 @@
     if (debugDialog.open) debugDialog.close();
     renderWelcome();
   });
-  document.querySelector('#sound-button').onclick=()=>{state.sound=!state.sound;save();document.querySelector('#sound-button').textContent=state.sound?'♪':'×';showToast(state.sound?'Musica e suoni attivi':'Musica e suoni disattivati');if(state.sound){tone(520);startMusic(currentMusicKey);}else stopMusic();};
+  document.querySelector('#sound-button').onclick=async()=>{state.sound=!state.sound;save();document.querySelector('#sound-button').textContent=state.sound?'♪':'×';showToast(state.sound?'Musica e suoni attivi':'Musica e suoni disattivati');if(state.sound){await unlockAudio();tone(520);startMusic(currentMusicKey);}else stopMusic();};
+  document.addEventListener('pointerdown',unlockAudio,{capture:true});
+  document.addEventListener('touchend',unlockAudio,{capture:true,passive:true});
+  document.addEventListener('keydown',unlockAudio,{capture:true});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMusic();else if(audioUnlocked&&audio&&audio.state==='running')startMusic(currentMusicKey);});
   if(new URLSearchParams(location.search).get('debug')==='58') later(openDebug,200);
   document.querySelector('#sound-button').textContent=state.sound?'♪':'×';
   if(state.confirmed&&state.gifts.length===2)renderFinal();else if(state.welcomed)renderCup();else renderWelcome();
