@@ -7,20 +7,20 @@
   const games = [
     { id:'sequenza', icon:'✨', title:'Formazione lampo', note:'Memoria visiva' },
     { id:'coppie', icon:'🃏', title:'Il derby delle coppie', note:'Attenzione e memoria' },
-    { id:'passaggi', icon:'⚽', title:'Passaggio perfetto', note:'Ricorda lo schema' },
+    { id:'passaggi', icon:'📋', title:'Mister per un giorno', note:'Riconosci i ruoli in campo' },
     { id:'ritmo', icon:'🎵', title:'Il ritmo del cuore', note:'Ascolta e riconosci' },
     { id:'logica', icon:'🔢', title:'La scala del 58', note:'Numeri e intuizione' },
     { id:'quiz', icon:'🏟️', title:'Quiz nerazzurro', note:'Cinque domande sull’Inter' }
   ];
   const initial = { completed:[], sound:true, gifts:[], confirmed:false, welcomed:false };
   let state = load();
-  let timers = [];
+  let timers = [], intervals = [];
   let titleTaps = 0;
   let audio;
 
   function load() { try { return {...initial, ...JSON.parse(localStorage.getItem(STORAGE)||'{}')}; } catch { return {...initial}; } }
   function save() { localStorage.setItem(STORAGE, JSON.stringify(state)); }
-  function clearTimers() { timers.forEach(clearTimeout); timers=[]; }
+  function clearTimers() { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers=[]; intervals=[]; }
   function later(fn,ms) { const id=setTimeout(fn,ms); timers.push(id); return id; }
   function showToast(message) { toast.textContent=message; toast.classList.add('show'); later(()=>toast.classList.remove('show'),2200); }
   function tone(freq=440,duration=.09,type='sine') {
@@ -54,17 +54,24 @@
     pads.forEach((p,i)=>p.onclick=()=>{if(locked)return;flash(i,0);input.push(i);if(sequence[input.length-1]!==i){locked=true;status('Quasi! Riproviamo con una nuova occhiata.');later(()=>document.querySelector('#show-sequence').click(),1000);}else if(input.length===sequence.length){locked=true;status('Memoria da fuoriclasse! ★');finish(game.id);}});
   }
   function gamePairs() {
-    const game=games[1], icons=['⚽','🏆','🎵','💙']; const deck=[...icons,...icons].sort(()=>Math.random()-.5); let first=null,lock=false,found=0;
-    shell(game,`<div class="memory-grid">${deck.map((x,i)=>`<button class="memory-card" data-i="${i}" data-icon="${x}" aria-label="Carta coperta">${x}</button>`).join('')}</div>`,'Trova tutte le quattro coppie. Le carte che indovini rimangono scoperte.');
-    app.querySelectorAll('.memory-card').forEach(card=>card.onclick=()=>{if(lock||card.classList.contains('matched')||card===first)return;card.classList.add('open');tone(480,.06);if(!first){first=card;return;}if(card.dataset.icon===first.dataset.icon){card.classList.add('matched');first.classList.add('matched');first=null;found++;status(`Coppie trovate: ${found} su 4`);if(found===4){status('Derby vinto! ★');finish(game.id);}}else{lock=true;const prev=first;first=null;later(()=>{card.classList.remove('open');prev.classList.remove('open');lock=false;},700);}});
+    const game=games[1], icons=['⚽','🏆','🎵','💙','⭐','🐍','🥅','👕']; const deck=[...icons,...icons].sort(()=>Math.random()-.5); let first=null,lock=false,found=0;
+    shell(game,`<div class="memory-grid">${deck.map((x,i)=>`<button class="memory-card" data-i="${i}" data-icon="${x}" aria-label="Carta coperta"><span>${x}</span></button>`).join('')}</div>`,'Trova tutte le otto coppie. Le carte che indovini rimangono scoperte.');
+    app.querySelectorAll('.memory-card').forEach(card=>card.onclick=()=>{if(lock||card.classList.contains('matched')||card===first)return;card.classList.add('open');card.setAttribute('aria-label',`Carta: ${card.dataset.icon}`);tone(480,.06);if(!first){first=card;return;}if(card.dataset.icon===first.dataset.icon){card.classList.add('matched');first.classList.add('matched');first=null;found++;status(`Coppie trovate: ${found} su 8`);if(found===8){status('Derby vinto! ★');finish(game.id);}}else{lock=true;const prev=first;first=null;later(()=>{card.classList.remove('open');prev.classList.remove('open');card.setAttribute('aria-label','Carta coperta');prev.setAttribute('aria-label','Carta coperta');lock=false;},750);}});
   }
   function gamePasses() {
-    const game=games[2], pos=[[18,20],[76,18],[30,48],[72,52],[48,79]]; let seq=[0,2,4,3],input=[],locked=true;
-    shell(game,`<div class="pitch">${pos.map((p,i)=>`<button class="player" data-player="${i}" style="left:${p[0]}%;top:${p[1]}%">${i+1}</button>`).join('')}</div><div class="actions"><button id="show-passes" class="button">Mostra lo schema</button></div>`,'Segui il pallone, poi ricrea i quattro passaggi toccando le giocatrici.');
-    const players=[...app.querySelectorAll('.player')];
-    function flash(i,d){later(()=>{players[i].classList.add('flash');tone(380+i*55);later(()=>players[i].classList.remove('flash'),300);},d);}
-    document.querySelector('#show-passes').onclick=()=>{locked=true;input=[];status('Segui il pallone…');seq.forEach((n,i)=>flash(n,450+i*650));later(()=>{locked=false;status('Ricrea lo schema!');},450+seq.length*650);};
-    players.forEach((p,i)=>p.onclick=()=>{if(locked)return;flash(i,0);input.push(i);if(seq[input.length-1]!==i){locked=true;status('Passaggio intercettato. Riguardiamo lo schema!');later(()=>document.querySelector('#show-passes').click(),850);}else if(input.length===seq.length){locked=true;status('Azione perfetta! ★');finish(game.id);}});
+    const game=games[2];
+    const roles=[
+      {name:'Portiere',short:'POR',x:50,y:91}, {name:'Difensore centrale',short:'DC',x:50,y:73},
+      {name:'Terzino destro',short:'TD',x:84,y:70}, {name:'Terzino sinistro',short:'TS',x:16,y:70},
+      {name:'Centrocampista centrale',short:'CC',x:50,y:48}, {name:'Ala destra',short:'AD',x:82,y:32},
+      {name:'Ala sinistra',short:'AS',x:18,y:32}, {name:'Centravanti',short:'ATT',x:50,y:12}
+    ];
+    let round=0, score=0, target=null;
+    shell(game,`<div class="tactics-meta"><span id="tactics-round">Ruolo 1 di 5</span><span id="tactics-score">0 punti</span></div><div class="pitch tactical-pitch">${roles.map((r,i)=>`<button class="player tactical-player" data-role="${i}" style="left:${r.x}%;top:${r.y}%"><span>${r.short}</span></button>`).join('')}</div><div class="role-question">Dove gioca il <strong id="role-name"></strong>?</div>`,'Guarda la formazione e tocca la posizione corretta per il ruolo richiesto. Il portiere difende la porta in basso.');
+    const players=[...app.querySelectorAll('[data-role]')];
+    function next(){if(round===5){status(`${score} su 5: la panchina è tua! ★`);players.forEach(p=>p.disabled=true);finish(game.id);return;}const previous=target;do{target=Math.floor(Math.random()*roles.length);}while(target===previous);document.querySelector('#role-name').textContent=roles[target].name;document.querySelector('#tactics-round').textContent=`Ruolo ${round+1} di 5`;document.querySelector('#tactics-score').textContent=`${score} punti`;players.forEach(p=>{p.classList.remove('correct-role','wrong-role');p.disabled=false;});status('Scegli una posizione');}
+    players.forEach((p,i)=>p.onclick=()=>{players.forEach(x=>x.disabled=true);if(i===target){score++;p.classList.add('correct-role');tone(690,.12);status('Posizione corretta!');}else{p.classList.add('wrong-role');players[target].classList.add('correct-role');status(`Era qui: ${roles[target].short}`);}round++;later(next,850);});
+    next();
   }
   function gameRhythm() {
     const game=games[3], patterns=[[1,1,2,1],[2,1,1,2],[1,2,2,1]], answer=Math.floor(Math.random()*3); let played=false;
@@ -74,22 +81,27 @@
     app.querySelectorAll('[data-rhythm]').forEach(b=>b.onclick=()=>{if(!played){showToast('Prima ascolta il ritmo');return;}if(+b.dataset.rhythm===answer){b.classList.add('correct');status('Hai il ritmo nel cuore! ★');finish(game.id);}else{b.classList.add('wrong');status('Non proprio: puoi riascoltarlo e riprovare.');later(()=>b.classList.remove('wrong'),700);}});
   }
   function gameLogic() {
-    const game=games[4], qs=[
-      {q:'20 + 8 + 19 + 11 = ?',a:['56','58','60'],ok:1},
-      {q:'2 · 5 · 8 · 11 · ?',a:['13','14','15'],ok:1},
-      {q:'Quante stelle servono per arrivare da 50 a 58?',a:['6','8','10'],ok:1}
-    ]; let index=0,score=0;
-    function draw(){const x=qs[index];shell(game,`<div class="quiz-meta"><span>Enigma ${index+1} di ${qs.length}</span><span>${score} punti</span></div><div class="logic-box">${x.q}</div><div class="choices">${x.a.map((a,i)=>`<button class="choice" data-answer="${i}">${a}</button>`).join('')}</div>`,'Tre piccoli enigmi conducono al numero speciale di oggi.');app.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{if(+b.dataset.answer===x.ok){score++;b.classList.add('correct');tone(680,.12);status('Esatto!');}else{b.classList.add('wrong');app.querySelector(`[data-answer="${x.ok}"]`).classList.add('correct');status('La soluzione era '+x.a[x.ok]+'.');}app.querySelectorAll('[data-answer]').forEach(z=>z.disabled=true);later(()=>{index++;if(index<qs.length)draw();else{status('La scala porta proprio a 58! ★');finish(game.id);}},850);});} draw();
+    const game=games[4]; let score=0,time=45,active=true,tickId;
+    shell(game,`<div class="timer-line"><strong>Tempo: <span id="logic-time">45</span>s</strong><span>Gradino <span id="logic-score">0</span>/8</span></div><div class="progress"><span id="logic-progress" style="width:0%"></span></div><div id="logic-question" class="logic-box"></div><div id="logic-answers" class="choices"></div>`,'Hai 45 secondi per risolvere otto conti casuali. Ogni risposta corretta ti fa salire di un gradino.');
+    function makeQuestion(){const kind=Math.floor(Math.random()*3);let a,b,answer,text;if(kind===0){a=8+Math.floor(Math.random()*43);b=4+Math.floor(Math.random()*24);answer=a+b;text=`${a} + ${b} = ?`;}else if(kind===1){a=25+Math.floor(Math.random()*45);b=3+Math.floor(Math.random()*Math.min(25,a-2));answer=a-b;text=`${a} − ${b} = ?`;}else{a=2+Math.floor(Math.random()*8);b=2+Math.floor(Math.random()*8);answer=a*b;text=`${a} × ${b} = ?`;}const answers=[answer];while(answers.length<3){const wrong=Math.max(0,answer+(Math.floor(Math.random()*11)-5));if(!answers.includes(wrong))answers.push(wrong);}answers.sort(()=>Math.random()-.5);return{text,answer,answers};}
+    function draw(){if(!active)return;const q=makeQuestion();document.querySelector('#logic-question').textContent=q.text;const box=document.querySelector('#logic-answers');box.innerHTML=q.answers.map(a=>`<button class="choice" data-value="${a}">${a}</button>`).join('');box.querySelectorAll('[data-value]').forEach(b=>b.onclick=()=>{if(!active)return;if(+b.dataset.value===q.answer){score++;tone(680,.09);document.querySelector('#logic-score').textContent=score;document.querySelector('#logic-progress').style.width=`${score/8*100}%`;if(score>=8){active=false;clearInterval(tickId);b.classList.add('correct');status('Otto gradini conquistati! ★');finish(game.id);return;}status('Esatto, sali!');draw();}else{box.querySelectorAll('[data-value]').forEach(button=>button.disabled=true);b.classList.add('wrong');status('Risposta errata: il tempo continua!');later(draw,350);}});}
+    tickId=setInterval(()=>{if(!active)return;time--;document.querySelector('#logic-time').textContent=time;if(time<=10)document.querySelector('.timer-line').classList.add('urgent');if(time<=0){active=false;clearInterval(tickId);document.querySelectorAll('[data-value]').forEach(b=>b.disabled=true);status(`Tempo scaduto: sei arrivata al gradino ${score}.`);const actions=document.createElement('div');actions.className='actions';actions.innerHTML='<button class="button" id="logic-retry">Riprova</button>';document.querySelector('#game-status').after(actions);document.querySelector('#logic-retry').onclick=gameLogic;}},1000);intervals.push(tickId);draw();
   }
   function gameQuiz() {
     const game=games[5]; let index=0,correct=0,usedHelp=false;
-    const qs=[
+    const questionPool=[
       {q:'In quale anno è nata l’Inter?',a:['1899','1908','1927'],ok:1,e:'L’Inter fu fondata a Milano il 9 marzo 1908.'},
-      {q:'Quali sono i colori storici dell’Inter?',a:['Nero e azzurro','Rosso e nero','Bianco e celeste'],ok:0,e:'Il nero e l’azzurro rappresentano la notte e il cielo.'},
       {q:'Chi segnò entrambi i gol nella finale europea del 2010?',a:['Javier Zanetti','Diego Milito','Samuel Eto’o'],ok:1,e:'Diego Milito firmò il 2–0 contro il Bayern Monaco.'},
       {q:'Come viene chiamata l’impresa dell’Inter nel 2010?',a:['La doppietta','Il Triplete','La rimonta'],ok:1,e:'Scudetto, Coppa Italia e Champions League: il celebre Triplete.'},
-      {q:'Chi detiene il record di presenze con la maglia dell’Inter?',a:['Javier Zanetti','Giuseppe Meazza','Giacinto Facchetti'],ok:0,e:'Javier Zanetti ha disputato 858 partite con l’Inter.'}
+      {q:'Chi detiene il record di presenze con la maglia dell’Inter?',a:['Javier Zanetti','Giuseppe Meazza','Giacinto Facchetti'],ok:0,e:'Javier Zanetti ha disputato 858 partite con l’Inter.'},
+      {q:'Chi segnò il gol decisivo nella finale di Coppa dei Campioni del 1965?',a:['Sandro Mazzola','Jair','Luis Suárez'],ok:1,e:'Jair segnò al 42° minuto contro il Benfica: l’Inter vinse 1–0.'},
+      {q:'Quale squadra affrontò l’Inter nella finale di Coppa UEFA del 1998?',a:['Lazio','Schalke 04','Roma'],ok:0,e:'Al Parco dei Principi l’Inter superò la Lazio per 3–0.'},
+      {q:'Chi è il miglior marcatore nella storia dell’Inter?',a:['Roberto Boninsegna','Giuseppe Meazza','Alessandro Altobelli'],ok:1,e:'Giuseppe Meazza guida la classifica storica con 284 gol.'},
+      {q:'Chi è il più giovane debuttante nella storia dell’Inter?',a:['Giuseppe Bergomi','Sandro Mazzola','Mario Corso'],ok:0,e:'Beppe Bergomi debuttò a 16 anni e 39 giorni nel 1980.'},
+      {q:'Quale interista vinse il Pallone d’Oro nel 1990?',a:['Walter Zenga','Lothar Matthäus','Andreas Brehme'],ok:1,e:'Lothar Matthäus vinse il Pallone d’Oro nel 1990.'},
+      {q:'Quale squadra batté l’Inter nella sua prima Coppa dei Campioni, nel 1964?',a:['Benfica','Ajax','Real Madrid'],ok:2,e:'La Grande Inter batté il Real Madrid 3–1 nella finale di Vienna.'}
     ];
+    const qs=[...questionPool].sort(()=>Math.random()-.5).slice(0,5);
     function draw(){const x=qs[index];shell(game,`<div class="quiz-meta"><span>Domanda ${index+1} di ${qs.length}</span><span>${correct} risposte esatte</span></div><h2>${x.q}</h2><div class="choices">${x.a.map((a,i)=>`<button class="choice" data-answer="${i}">${a}</button>`).join('')}</div><div class="actions"><button id="fifty" class="button secondary" ${usedHelp?'disabled':''}>Aiuto 50:50</button></div><div id="explanation"></div>`,'Rispondi alle domande. Puoi sbagliare e continuare: qui si gioca per divertirsi.');
       document.querySelector('#fifty').onclick=()=>{usedHelp=true;const wrong=[0,1,2].filter(i=>i!==x.ok);app.querySelector(`[data-answer="${wrong[Math.floor(Math.random()*wrong.length)]}"]`).disabled=true;document.querySelector('#fifty').disabled=true;};
       app.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{const ok=+b.dataset.answer===x.ok;if(ok){correct++;b.classList.add('correct');tone(720,.12);}else{b.classList.add('wrong');app.querySelector(`[data-answer="${x.ok}"]`).classList.add('correct');}app.querySelectorAll('[data-answer]').forEach(z=>z.disabled=true);document.querySelector('#explanation').innerHTML=`<p class="explanation"><strong>${ok?'Esatto!':'La risposta giusta era '+x.a[x.ok]+'.'}</strong><br>${x.e}</p>`;later(()=>{index++;if(index<qs.length)draw();else{status(`${correct} su ${qs.length}: passione nerazzurra! ★`);finish(game.id);}},1500);});
