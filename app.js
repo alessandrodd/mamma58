@@ -104,7 +104,11 @@
 
   function openDebug(){const box=document.querySelector('#debug-actions');box.innerHTML=games.map(g=>`<button type="button" class="button secondary" data-debug-game="${g.id}">${g.icon} ${g.title}</button>`).join('')+`<button type="button" class="button gold" data-debug="reward">Sala regali</button><button type="button" class="button secondary" data-debug="complete">Completa tutto</button><button type="button" class="button secondary" data-debug="reset">Azzera dati</button>`;box.querySelectorAll('[data-debug-game]').forEach(b=>b.onclick=()=>{debugDialog.close();startGame(b.dataset.debugGame);});box.querySelector('[data-debug="reward"]').onclick=()=>{debugDialog.close();renderGifts();};box.querySelector('[data-debug="complete"]').onclick=()=>{state.completed=games.map(g=>g.id);save();debugDialog.close();renderCup();};box.querySelector('[data-debug="reset"]').onclick=()=>{state={...initial};save();debugDialog.close();renderWelcome();};debugDialog.showModal();}
   document.querySelector('.brand').addEventListener('click',()=>{titleTaps++;if(titleTaps>=7){titleTaps=0;openDebug();}later(()=>titleTaps=0,2500);});
-  document.querySelector('#home-button').onclick=renderCup;
+  document.querySelector('#home-button').addEventListener('click',()=>{
+    clearTimers();
+    if (debugDialog.open) debugDialog.close();
+    renderWelcome();
+  });
   document.querySelector('#sound-button').onclick=()=>{state.sound=!state.sound;save();document.querySelector('#sound-button').textContent=state.sound?'♪':'×';showToast(state.sound?'Suoni attivi':'Suoni disattivati');if(state.sound)tone(520);};
   if(new URLSearchParams(location.search).get('debug')==='58') later(openDebug,200);
   document.querySelector('#sound-button').textContent=state.sound?'♪':'×';
