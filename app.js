@@ -10,7 +10,7 @@
     { id:'passaggi', icon:'📋', title:'Mister per un giorno', note:'Riconosci i ruoli in campo' },
     { id:'ritmo', icon:'🎵', title:'Indovina i Pooh', note:'Riconosci la canzone' },
     { id:'logica', icon:'🔢', title:'La scala del 58', note:'Numeri e intuizione' },
-    { id:'quiz', icon:'🏟️', title:'Quiz nerazzurro', note:'Cinque domande sull’Inter' }
+    { id:'quiz', icon:'🏟️', title:'Quiz nerazzurro', note:'Otto domande sull’Inter' }
   ];
   const initial = { completed:[], sound:true, gifts:[], confirmed:false, welcomed:false };
   let state = load();
@@ -142,9 +142,16 @@
       {q:'Chi è il miglior marcatore nella storia dell’Inter?',a:['Roberto Boninsegna','Giuseppe Meazza','Alessandro Altobelli'],ok:1,e:'Giuseppe Meazza guida la classifica storica con 284 gol.'},
       {q:'Chi è il più giovane debuttante nella storia dell’Inter?',a:['Giuseppe Bergomi','Sandro Mazzola','Mario Corso'],ok:0,e:'Beppe Bergomi debuttò a 16 anni e 39 giorni nel 1980.'},
       {q:'Quale interista vinse il Pallone d’Oro nel 1990?',a:['Walter Zenga','Lothar Matthäus','Andreas Brehme'],ok:1,e:'Lothar Matthäus vinse il Pallone d’Oro nel 1990.'},
-      {q:'Quale squadra batté l’Inter nella sua prima Coppa dei Campioni, nel 1964?',a:['Benfica','Ajax','Real Madrid'],ok:2,e:'La Grande Inter batté il Real Madrid 3–1 nella finale di Vienna.'}
+      {q:'Quale squadra batté l’Inter nella sua prima Coppa dei Campioni, nel 1964?',a:['Benfica','Ajax','Real Madrid'],ok:2,e:'La Grande Inter batté il Real Madrid 3–1 nella finale di Vienna.'},
+      {q:'Chi allenava la squadra conosciuta come “Grande Inter”?',a:['Helenio Herrera','Giovanni Trapattoni','Roberto Mancini'],ok:0,e:'Helenio Herrera, soprannominato il Mago, guidò la Grande Inter.'},
+      {q:'Chi segnò due gol nella finale di Coppa dei Campioni del 1964?',a:['Luis Suárez','Sandro Mazzola','Giacinto Facchetti'],ok:1,e:'Sandro Mazzola segnò al 43° e al 76° contro il Real Madrid.'},
+      {q:'Dove si disputò la finale di Coppa dei Campioni del 1965?',a:['Madrid','Vienna','Milano'],ok:2,e:'Inter-Benfica si giocò a San Siro, a Milano.'},
+      {q:'Quali furono i marcatori della finale di Coppa UEFA 1998?',a:['Zamorano, Zanetti e Ronaldo','Vieri, Recoba e Simeone','Ronaldo, Djorkaeff e Bergomi'],ok:0,e:'Zamorano, Javier Zanetti e Ronaldo firmarono il 3–0 contro la Lazio.'},
+      {q:'Qual è il celebre soprannome di Giuseppe Bergomi?',a:['Il Principe','Lo Zio','Il Mago'],ok:1,e:'I baffi portati da giovanissimo gli valsero il soprannome “Lo Zio”.'},
+      {q:'Quale numero di maglia dell’Inter è stato ritirato per Javier Zanetti?',a:['3','4','10'],ok:1,e:'Il numero 4 è stato ritirato in onore dello storico capitano.'},
+      {q:'In quale città l’Inter vinse la Coppa dei Campioni del 1964?',a:['Vienna','Parigi','Lisbona'],ok:0,e:'La prima Coppa dei Campioni nerazzurra arrivò a Vienna.'}
     ];
-    const qs=[...questionPool].sort(()=>Math.random()-.5).slice(0,5);
+    const qs=[...questionPool].sort(()=>Math.random()-.5).slice(0,8);
     function draw(){const x=qs[index];shell(game,`<div class="quiz-meta"><span>Domanda ${index+1} di ${qs.length}</span><span>${correct} risposte esatte</span></div><h2>${x.q}</h2><div class="choices">${x.a.map((a,i)=>`<button class="choice" data-answer="${i}">${a}</button>`).join('')}</div><div class="actions"><button id="fifty" class="button secondary" ${usedHelp?'disabled':''}>Aiuto 50:50</button></div><div id="explanation"></div>`,'Rispondi alle domande. Puoi sbagliare e continuare: qui si gioca per divertirsi.');
       document.querySelector('#fifty').onclick=()=>{usedHelp=true;const wrong=[0,1,2].filter(i=>i!==x.ok);app.querySelector(`[data-answer="${wrong[Math.floor(Math.random()*wrong.length)]}"]`).disabled=true;document.querySelector('#fifty').disabled=true;};
       app.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{const ok=+b.dataset.answer===x.ok;if(ok){correct++;b.classList.add('correct');tone(720,.12);}else{b.classList.add('wrong');app.querySelector(`[data-answer="${x.ok}"]`).classList.add('correct');}app.querySelectorAll('[data-answer]').forEach(z=>z.disabled=true);document.querySelector('#explanation').innerHTML=`<p class="explanation"><strong>${ok?'Esatto!':'La risposta giusta era '+x.a[x.ok]+'.'}</strong><br>${x.e}</p>`;later(()=>{index++;if(index<qs.length)draw();else{status(`${correct} su ${qs.length}: passione nerazzurra! ★`);finish(game.id);}},1500);});
