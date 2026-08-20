@@ -20,6 +20,12 @@ TRACKS = {
     "regali": (88, [74, 78, 81, 86, 81, 78, 76, 81], [50, 47, 43, 45], "piano"),
 }
 
+CLUES = [
+    ([72, 76, 79, 76], [72, 76, 81, 76]),
+    ([69, 72, 76, 74], [69, 72, 76, 77]),
+    ([67, 71, 74, 79], [67, 71, 73, 79]),
+]
+
 
 def frequency(midi):
     return 440.0 * 2 ** ((midi - 69) / 12)
@@ -63,6 +69,22 @@ def build_track(tempo, notes, chord_roots, style):
     return data
 
 
+def build_clue(notes):
+    note_length = .48
+    total = int(len(notes) * note_length * RATE)
+    data = array("h")
+    for i in range(total):
+        t = i / RATE
+        note_index = min(len(notes) - 1, int(t / note_length))
+        local = (t % note_length) / note_length
+        attack = min(1, local / .06)
+        release = max(0, 1 - local) ** 1.8
+        phase = 2 * pi * frequency(notes[note_index]) * t
+        sound = sin(phase) * .78 + sin(phase * 2) * .16 + sin(phase * 3) * .06
+        data.append(int(sound * attack * release * .42 * 32767))
+    return data
+
+
 OUT.mkdir(parents=True, exist_ok=True)
 for name, settings in TRACKS.items():
     with wave.open(str(OUT / f"{name}.wav"), "wb") as output:
@@ -71,3 +93,15 @@ for name, settings in TRACKS.items():
         output.setframerate(RATE)
         output.writeframes(build_track(*settings).tobytes())
     print(OUT / f"{name}.wav")
+
+CLUE_OUT = OUT / "indizi"
+CLUE_OUT.mkdir(parents=True, exist_ok=True)
+for index, (normal, odd) in enumerate(CLUES, 1):
+    for kind, notes in (("uguale", normal), ("stonata", odd)):
+        path = CLUE_OUT / f"manche-{index}-{kind}.wav"
+        with wave.open(str(path), "wb") as output:
+            output.setnchannels(1)
+            output.setsampwidth(2)
+            output.setframerate(RATE)
+            output.writeframes(build_clue(notes).tobytes())
+        print(path)

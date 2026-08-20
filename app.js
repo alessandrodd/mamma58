@@ -8,7 +8,7 @@
     { id:'sequenza', icon:'✨', title:'Formazione lampo', note:'Memoria visiva' },
     { id:'coppie', icon:'🃏', title:'Il derby delle coppie', note:'Attenzione e memoria' },
     { id:'passaggi', icon:'📋', title:'Mister per un giorno', note:'Riconosci i ruoli in campo' },
-    { id:'ritmo', icon:'🎵', title:'Il ritmo del cuore', note:'Ascolta e riconosci' },
+    { id:'ritmo', icon:'🎵', title:'La nota stonata', note:'Trova la melodia diversa' },
     { id:'logica', icon:'🔢', title:'La scala del 58', note:'Numeri e intuizione' },
     { id:'quiz', icon:'🏟️', title:'Quiz nerazzurro', note:'Cinque domande sull’Inter' }
   ];
@@ -16,12 +16,12 @@
   let state = load();
   let timers = [], intervals = [];
   let titleTaps = 0;
-  let audio, audioUnlocked=false, audioUnlocking=false, musicPlayer, currentMusicKey='welcome';
+  let audio, audioUnlocked=false, audioUnlocking=false, musicPlayer, cluePlayer, currentMusicKey='welcome';
   const musicFiles={welcome:'welcome',cup:'cup',sequenza:'sequenza',coppie:'coppie',passaggi:'passaggi',ritmo:'ritmo',logica:'logica',quiz:'quiz',finale:'finale',regali:'regali'};
 
   function load() { try { return {...initial, ...JSON.parse(localStorage.getItem(STORAGE)||'{}')}; } catch { return {...initial}; } }
   function save() { localStorage.setItem(STORAGE, JSON.stringify(state)); }
-  function clearTimers() { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers=[]; intervals=[]; }
+  function clearTimers() { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers=[]; intervals=[];if(cluePlayer){cluePlayer.pause();cluePlayer.currentTime=0;} }
   function later(fn,ms) { const id=setTimeout(fn,ms); timers.push(id); return id; }
   function showToast(message) { toast.textContent=message; toast.classList.add('show'); later(()=>toast.classList.remove('show'),2200); }
   function getAudio(){
@@ -109,11 +109,11 @@
     draw();
   }
   function gameRhythm() {
-    const game=games[3], patterns=[[1,1,2,1],[2,1,1,2],[1,2,2,1]], answer=Math.floor(Math.random()*3); let played=false;
-    shell(game,`<div class="rhythm-stage"><div class="record">♫</div></div><div class="actions"><button id="listen" class="button">Ascolta il ritmo</button></div><div class="choices">${patterns.map((p,i)=>`<button class="choice" data-rhythm="${i}">${p.map(n=>n===1?'TA':'TAA').join(' · ')}</button>`).join('')}</div>`,'Ascolta il ritmo originale e scegli la sequenza che gli corrisponde.');
-    const record=document.querySelector('.record');
-    document.querySelector('#listen').onclick=()=>{played=true;stopMusic();status('Ascolta…');let t=250;patterns[answer].forEach(n=>{later(()=>{record.classList.add('beat');tone(n===1?520:360,n===1?.12:.28);later(()=>record.classList.remove('beat'),150);},t);t+=n===1?430:680;});later(()=>{status('Qual era il ritmo?');startMusic('ritmo');},t);};
-    app.querySelectorAll('[data-rhythm]').forEach(b=>b.onclick=()=>{if(!played){showToast('Prima ascolta il ritmo');return;}if(+b.dataset.rhythm===answer){b.classList.add('correct');status('Hai il ritmo nel cuore! ★');finish(game.id);}else{b.classList.add('wrong');status('Non proprio: puoi riascoltarlo e riprovare.');later(()=>b.classList.remove('wrong'),700);}});
+    const game=games[3];let round=0,score=0,odd=0;
+    shell(game,`<div class="quiz-meta"><span id="melody-round">Manche 1 di 3</span><span id="melody-score">0 punti</span></div><div class="record small-record">♫</div><h2 class="melody-question">Quale melodia è diversa?</h2><div id="melody-options" class="melody-options"></div>`,'Ascolta le tre brevi melodie. Due sono identiche: scegli quella con una nota fuori posto. Puoi riascoltarle quanto vuoi.');
+    stopMusic();cluePlayer=new Audio();cluePlayer.preload='auto';cluePlayer.setAttribute('playsinline','');
+    function draw(){if(round===3){status(`${score} su 3: orecchio finissimo! ★`);finish(game.id);return;}odd=Math.floor(Math.random()*3);document.querySelector('#melody-round').textContent=`Manche ${round+1} di 3`;document.querySelector('#melody-score').textContent=`${score} punti`;const box=document.querySelector('#melody-options');box.innerHTML=[0,1,2].map(i=>`<div class="melody-option" data-option="${i}"><button class="listen-clue" data-listen="${i}"><span>▶</span> Melodia ${i+1}</button><button class="choose-clue" data-choose="${i}">Scegli questa</button></div>`).join('');box.querySelectorAll('[data-listen]').forEach(button=>button.onclick=async()=>{const i=+button.dataset.listen,kind=i===odd?'stonata':'uguale';cluePlayer.pause();cluePlayer.src=`assets/music/indizi/manche-${round+1}-${kind}.wav?v=nota-stonata-1`;cluePlayer.currentTime=0;box.querySelectorAll('.melody-option').forEach(card=>card.classList.remove('playing'));button.closest('.melody-option').classList.add('playing');try{await cluePlayer.play();status(`Stai ascoltando la melodia ${i+1}`);}catch{showToast('Tocca di nuovo per ascoltare');}cluePlayer.onended=()=>button.closest('.melody-option')?.classList.remove('playing');});box.querySelectorAll('[data-choose]').forEach(button=>button.onclick=()=>{cluePlayer.pause();box.querySelectorAll('button').forEach(item=>item.disabled=true);const selected=+button.dataset.choose,correct=box.querySelector(`[data-option="${odd}"]`);if(selected===odd){score++;button.closest('.melody-option').classList.add('correct-option');status('Esatto: quella nota era diversa!');}else{button.closest('.melody-option').classList.add('wrong-option');correct.classList.add('correct-option');status(`Era la melodia ${odd+1}.`);}round++;later(draw,1000);});}
+    draw();
   }
   function gameLogic() {
     const game=games[4]; let score=0,time=45,active=true,tickId;

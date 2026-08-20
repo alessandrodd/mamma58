@@ -83,6 +83,14 @@ p { line-height: 1.5; }
 .rhythm-stage { display:grid; place-items:center; min-height:150px; }
 .record { width:128px; height:128px; display:grid; place-items:center; border-radius:50%; background: repeating-radial-gradient(circle,#1a2233 0 7px,#05070c 8px 15px); border:4px solid #394966; font-size:2rem; transition:.12s; }
 .record.beat { transform:scale(1.09); box-shadow:0 0 35px var(--blu-chiaro); }
+.small-record { width:92px; height:92px; margin:8px auto; }
+.melody-question { margin:16px 0; text-align:center; font-size:1.35rem; }
+.melody-options { display:grid; gap:11px; }
+.melody-option { display:grid; grid-template-columns:1fr auto; gap:8px; padding:9px; border:2px solid rgba(255,255,255,.12); border-radius:16px; background:rgba(255,255,255,.05); transition:.15s; }
+.melody-option.playing { border-color:var(--blu-chiaro); box-shadow:0 0 20px rgba(57,167,255,.25); }
+.melody-option.correct-option { border-color:var(--verde); background:rgba(71,215,138,.18); }.melody-option.wrong-option { border-color:var(--rosso); background:rgba(255,104,117,.16); }
+.listen-clue,.choose-clue { min-height:50px; border:0; border-radius:11px; color:white; font-weight:850; }
+.listen-clue { background:#164f9f; }.listen-clue span { color:var(--oro); }.choose-clue { padding:8px 12px; background:rgba(255,255,255,.10); }
 .choices { display:grid; gap:10px; }
 .choice { min-height:58px; padding:13px 15px; text-align:left; border:1px solid rgba(255,255,255,.16); border-radius:14px; color:white; background:rgba(255,255,255,.07); font-weight:750; }
 .choice.correct { background:rgba(71,215,138,.25); border-color:var(--verde); }.choice.wrong { background:rgba(255,104,117,.25); border-color:var(--rosso); }
