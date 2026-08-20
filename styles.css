@@ -91,6 +91,7 @@ p { line-height: 1.5; }
 .melody-option.correct-option { border-color:var(--verde); background:rgba(71,215,138,.18); }.melody-option.wrong-option { border-color:var(--rosso); background:rgba(255,104,117,.16); }
 .listen-clue,.choose-clue { min-height:50px; border:0; border-radius:11px; color:white; font-weight:850; }
 .listen-clue { background:#164f9f; }.listen-clue span { color:var(--oro); }.choose-clue { padding:8px 12px; background:rgba(255,255,255,.10); }
+.music-credit { margin:18px 0 0; color:var(--muted); text-align:center; font-size:.72rem; }.music-credit a { color:#c9dfff; }
 .choices { display:grid; gap:10px; }
 .choice { min-height:58px; padding:13px 15px; text-align:left; border:1px solid rgba(255,255,255,.16); border-radius:14px; color:white; background:rgba(255,255,255,.07); font-weight:750; }
 .choice.correct { background:rgba(71,215,138,.25); border-color:var(--verde); }.choice.wrong { background:rgba(255,104,117,.25); border-color:var(--rosso); }

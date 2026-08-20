@@ -23,4 +23,6 @@ Il pannello permette di aprire una singola sfida, completarle tutte, aprire dire
 
 Il progetto è un sito statico pronto per GitHub Pages. Pubblicare la root del branch principale.
 
-Le domande storiche del quiz sono basate su fonti ufficiali di FC Internazionale Milano. Il progetto non include stemmi, fotografie, registrazioni o testi musicali protetti.
+Le domande storiche del quiz sono basate su fonti ufficiali di FC Internazionale Milano. Il progetto non include stemmi, fotografie, registrazioni originali o testi delle canzoni.
+
+Gli estratti della prova musicale derivano dai MIDI distribuiti gratuitamente dal [Pooh Official Website](https://pooh.it/midi-file-gratis). Come richiesto dalla fonte: "Pooh Official Website www.pooh.it".

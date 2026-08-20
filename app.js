@@ -8,7 +8,7 @@
     { id:'sequenza', icon:'✨', title:'Formazione lampo', note:'Memoria visiva' },
     { id:'coppie', icon:'🃏', title:'Il derby delle coppie', note:'Attenzione e memoria' },
     { id:'passaggi', icon:'📋', title:'Mister per un giorno', note:'Riconosci i ruoli in campo' },
-    { id:'ritmo', icon:'🎵', title:'La nota stonata', note:'Trova la melodia diversa' },
+    { id:'ritmo', icon:'🎵', title:'Indovina i Pooh', note:'Riconosci la canzone' },
     { id:'logica', icon:'🔢', title:'La scala del 58', note:'Numeri e intuizione' },
     { id:'quiz', icon:'🏟️', title:'Quiz nerazzurro', note:'Cinque domande sull’Inter' }
   ];
@@ -109,10 +109,18 @@
     draw();
   }
   function gameRhythm() {
-    const game=games[3];let round=0,score=0,odd=0;
-    shell(game,`<div class="quiz-meta"><span id="melody-round">Manche 1 di 3</span><span id="melody-score">0 punti</span></div><div class="record small-record">♫</div><h2 class="melody-question">Quale melodia è diversa?</h2><div id="melody-options" class="melody-options"></div>`,'Ascolta le tre brevi melodie. Due sono identiche: scegli quella con una nota fuori posto. Puoi riascoltarle quanto vuoi.');
+    const game=games[3],songPool=[
+      {title:'Amici per sempre',file:'amici-per-sempre'},
+      {title:'Ci penserò domani',file:'ci-pensero-domani'},
+      {title:'La donna del mio amico',file:'la-donna-del-mio-amico'},
+      {title:'Mi manchi',file:'mi-manchi'},
+      {title:'Stai con me',file:'stai-con-me'},
+      {title:'Stella del Sud',file:'stella-del-sud'}
+    ];
+    const questions=[...songPool].sort(()=>Math.random()-.5).slice(0,5);let round=0,score=0;
+    shell(game,`<div class="quiz-meta"><span id="song-round">Canzone 1 di 5</span><span id="song-score">0 punti</span></div><div class="record small-record">♫</div><h2 class="melody-question">Che canzone è?</h2><div class="actions"><button id="listen-song" class="button gold">▶ Ascolta l’estratto</button></div><div id="song-options" class="choices"></div><p class="music-credit">MIDI originali: <a href="https://pooh.it/midi-file-gratis" target="_blank" rel="noopener">Pooh Official Website www.pooh.it</a></p>`,'Ascolta la melodia e scegli il titolo giusto. Puoi riascoltare l’estratto tutte le volte che vuoi.');
     stopMusic();cluePlayer=new Audio();cluePlayer.preload='auto';cluePlayer.setAttribute('playsinline','');
-    function draw(){if(round===3){status(`${score} su 3: orecchio finissimo! ★`);finish(game.id);return;}odd=Math.floor(Math.random()*3);document.querySelector('#melody-round').textContent=`Manche ${round+1} di 3`;document.querySelector('#melody-score').textContent=`${score} punti`;const box=document.querySelector('#melody-options');box.innerHTML=[0,1,2].map(i=>`<div class="melody-option" data-option="${i}"><button class="listen-clue" data-listen="${i}"><span>▶</span> Melodia ${i+1}</button><button class="choose-clue" data-choose="${i}">Scegli questa</button></div>`).join('');box.querySelectorAll('[data-listen]').forEach(button=>button.onclick=async()=>{const i=+button.dataset.listen,kind=i===odd?'stonata':'uguale';cluePlayer.pause();cluePlayer.src=`assets/music/indizi/manche-${round+1}-${kind}.wav?v=nota-stonata-1`;cluePlayer.currentTime=0;box.querySelectorAll('.melody-option').forEach(card=>card.classList.remove('playing'));button.closest('.melody-option').classList.add('playing');try{await cluePlayer.play();status(`Stai ascoltando la melodia ${i+1}`);}catch{showToast('Tocca di nuovo per ascoltare');}cluePlayer.onended=()=>button.closest('.melody-option')?.classList.remove('playing');});box.querySelectorAll('[data-choose]').forEach(button=>button.onclick=()=>{cluePlayer.pause();box.querySelectorAll('button').forEach(item=>item.disabled=true);const selected=+button.dataset.choose,correct=box.querySelector(`[data-option="${odd}"]`);if(selected===odd){score++;button.closest('.melody-option').classList.add('correct-option');status('Esatto: quella nota era diversa!');}else{button.closest('.melody-option').classList.add('wrong-option');correct.classList.add('correct-option');status(`Era la melodia ${odd+1}.`);}round++;later(draw,1000);});}
+    function draw(){if(round===questions.length){status(`${score} su 5: vera intenditrice dei Pooh! ★`);finish(game.id);return;}const song=questions[round],wrong=[...songPool].filter(item=>item.file!==song.file).sort(()=>Math.random()-.5).slice(0,2),answers=[song,...wrong].sort(()=>Math.random()-.5);document.querySelector('#song-round').textContent=`Canzone ${round+1} di 5`;document.querySelector('#song-score').textContent=`${score} punti`;const listen=document.querySelector('#listen-song');listen.textContent='▶ Ascolta l’estratto';listen.disabled=false;listen.onclick=async()=>{cluePlayer.pause();cluePlayer.src=`assets/music/pooh/${song.file}.wav?v=pooh-1`;cluePlayer.currentTime=0;listen.textContent='♫ In riproduzione…';try{await cluePlayer.play();status('Ascolta bene la melodia…');}catch{listen.textContent='▶ Tocca per riprovare';showToast('Il telefono ha bloccato l’audio');}cluePlayer.onended=()=>{listen.textContent='↻ Riascolta l’estratto';status('Qual è il titolo?');};};const box=document.querySelector('#song-options');box.innerHTML=answers.map(answer=>`<button class="choice" data-song="${answer.file}">${answer.title}</button>`).join('');box.querySelectorAll('[data-song]').forEach(button=>button.onclick=()=>{cluePlayer.pause();box.querySelectorAll('button').forEach(item=>item.disabled=true);const correct=button.dataset.song===song.file;if(correct){score++;button.classList.add('correct');status('Esatto!');}else{button.classList.add('wrong');box.querySelector(`[data-song="${song.file}"]`).classList.add('correct');status(`Era “${song.title}”.`);}round++;later(draw,1200);});}
     draw();
   }
   function gameLogic() {
