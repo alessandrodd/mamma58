@@ -93,9 +93,12 @@ p { line-height: 1.5; }
 .trophy { font-size:clamp(5rem,28vw,9rem); filter:drop-shadow(0 0 28px rgba(244,201,93,.5)); animation:float 2s ease-in-out infinite; }
 @keyframes float { 50% { transform:translateY(-9px) rotate(2deg); } }
 .gift-grid { display:grid; gap:12px; margin:20px 0; }
-.gift { min-height:110px; padding:16px; display:grid; grid-template-columns:52px 1fr 28px; gap:12px; align-items:center; text-align:left; border:2px solid rgba(255,255,255,.14); border-radius:18px; color:white; background:rgba(255,255,255,.06); }
+.gift { padding:0; display:block; overflow:hidden; text-align:left; border:2px solid rgba(255,255,255,.14); border-radius:18px; color:white; background:rgba(255,255,255,.06); }
 .gift.selected { border-color:var(--oro); background:rgba(244,201,93,.13); }
-.gift-icon { font-size:2rem; }.gift-check { width:25px; height:25px; display:grid; place-items:center; border:2px solid rgba(255,255,255,.5); border-radius:50%; }
+.gift-image { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; background:#07152f; }
+.gift-body { min-height:126px; padding:14px; display:grid; grid-template-columns:42px 1fr 28px; gap:10px; align-items:center; }
+.gift-icon { font-size:1.7rem; }.gift-copy strong,.gift-copy small { display:block; }.gift-copy small { margin-top:6px; color:var(--muted); font-weight:550; line-height:1.35; }
+.gift-check { width:25px; height:25px; display:grid; place-items:center; border:2px solid rgba(255,255,255,.5); border-radius:50%; }
 .gift.selected .gift-check { color:#201600; border-color:var(--oro); background:var(--oro); }
 .selection-count { text-align:center; color:var(--oro); font-weight:900; }
 .final-card { text-align:center; padding:22px 12px; }
