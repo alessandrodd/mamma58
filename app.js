@@ -33,7 +33,7 @@
     return musicPlayer;
   }
   async function playMusic(){
-    if(!state.sound)return false;const player=getMusicPlayer(),file=musicFiles[currentMusicKey]||musicFiles.cup;const wanted=new URL(`assets/music/${file}.wav`,location.href).href;
+    if(!state.sound)return false;const player=getMusicPlayer(),file=musicFiles[currentMusicKey]||musicFiles.cup;const wanted=new URL(`assets/music/${file}.wav?v=soft-music-3`,location.href).href;
     if(player.src!==wanted){player.src=wanted;player.load();}
     try{await player.play();return !player.paused;}catch{return false;}
   }
@@ -63,8 +63,9 @@
   function status(text) { const e=document.querySelector('#game-status'); if(e)e.textContent=text; }
 
   function renderWelcome() {
-    clearTimers();startMusic('welcome'); app.innerHTML=`<section class="hero"><div class="eyebrow">20 AGOSTO 2026 · UNA GIORNATA SPECIALE</div><h1>Buon <span class="age">58°</span><br>compleanno!</h1><p class="lead">Sei convocata per la più importante sfida nerazzurra dell’anno: sei prove di memoria, musica, logica e passione interista.</p><div class="actions"><button id="start" class="button gold">Entra in campo</button></div><p class="instruction">Niente paura: puoi riprovare ogni sfida e il regalo non dipende dal punteggio.</p></section>`;
+    clearTimers();startMusic('welcome'); app.innerHTML=`<section class="hero"><div class="eyebrow">20 AGOSTO 2026 · UNA GIORNATA SPECIALE</div><h1>Buon <span class="age">58°</span><br>compleanno!</h1><p class="lead">Sei convocata per la più importante sfida nerazzurra dell’anno: sei prove di memoria, musica, logica e passione interista.</p><div class="actions"><button id="start" class="button gold">Entra in campo</button><button id="test-music" class="button secondary">▶ Prova la musica</button></div><p class="instruction">Niente paura: puoi riprovare ogni sfida e il regalo non dipende dal punteggio.</p></section>`;
     document.querySelector('#start').onclick=()=>{unlockAudio();state.welcomed=true;save();renderCup();};
+    document.querySelector('#test-music').onclick=async()=>{state.sound=true;save();document.querySelector('#sound-button').textContent='♪';const unlocked=await unlockAudio(),playing=await playMusic();showToast(unlocked||playing?'Musica attiva!':'Audio bloccato dal telefono');};
   }
   function renderCup() {
     clearTimers();startMusic('cup'); const unlocked=state.completed.length===games.length;
@@ -160,7 +161,7 @@
     if (debugDialog.open) debugDialog.close();
     renderWelcome();
   });
-  document.querySelector('#sound-button').onclick=async()=>{state.sound=!state.sound;save();document.querySelector('#sound-button').textContent=state.sound?'♪':'×';showToast(state.sound?'Musica e suoni attivi':'Musica e suoni disattivati');if(state.sound){await unlockAudio();tone(520);startMusic(currentMusicKey);}else stopMusic();};
+  document.querySelector('#sound-button').onclick=async()=>{if(state.sound&&(!musicPlayer||musicPlayer.paused)){const unlocked=await unlockAudio(),playing=await playMusic();document.querySelector('#sound-button').textContent='♪';showToast(unlocked||playing?'Musica attiva!':'Audio bloccato dal telefono');return;}state.sound=!state.sound;save();document.querySelector('#sound-button').textContent=state.sound?'♪':'×';showToast(state.sound?'Musica e suoni attivi':'Musica e suoni disattivati');if(state.sound){await unlockAudio();tone(520);startMusic(currentMusicKey);}else stopMusic();};
   document.addEventListener('pointerdown',unlockAudio,{capture:true});
   document.addEventListener('touchend',unlockAudio,{capture:true,passive:true});
   document.addEventListener('keydown',unlockAudio,{capture:true});
