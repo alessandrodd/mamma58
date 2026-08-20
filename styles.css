@@ -77,6 +77,8 @@ p { line-height: 1.5; }
 .tactical-player.wrong-role { background:var(--rosso); }
 .role-question { margin-top:15px; padding:13px; text-align:center; border-radius:14px; background:rgba(255,255,255,.08); font-size:1.05rem; }
 .role-question strong { color:var(--oro); }
+.player-card { min-height:180px; margin:10px 0 16px; padding:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; border:2px solid rgba(244,201,93,.45); border-radius:22px; background:linear-gradient(145deg,rgba(0,104,217,.25),rgba(5,14,34,.85)); }
+.player-card span { font-size:3rem; }.player-card strong { font-size:clamp(1.5rem,7vw,2.25rem); }.player-card small { color:var(--muted); }
 .timer-line strong { color:var(--oro); }.timer-line.urgent strong { color:var(--rosso); }
 .rhythm-stage { display:grid; place-items:center; min-height:150px; }
 .record { width:128px; height:128px; display:grid; place-items:center; border-radius:50%; background: repeating-radial-gradient(circle,#1a2233 0 7px,#05070c 8px 15px); border:4px solid #394966; font-size:2rem; transition:.12s; }

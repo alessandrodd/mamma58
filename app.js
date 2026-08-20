@@ -16,30 +16,51 @@
   let state = load();
   let timers = [], intervals = [];
   let titleTaps = 0;
-  let audio;
+  let audio, musicTimer, musicStep=0, musicGeneration=0, currentMusicKey='welcome';
+  const musicTracks={
+    welcome:{tempo:430,wave:'sine',notes:[262,330,392,330,294,349,440,349]},
+    cup:{tempo:310,wave:'triangle',notes:[196,247,294,392,294,247,220,277]},
+    sequenza:{tempo:270,wave:'square',notes:[262,330,392,523,392,330,294,370]},
+    coppie:{tempo:360,wave:'triangle',notes:[220,277,330,277,247,294,370,294]},
+    passaggi:{tempo:300,wave:'sawtooth',notes:[196,196,294,247,330,294,247,220]},
+    ritmo:{tempo:240,wave:'sine',notes:[330,494,440,392,330,392,440,587]},
+    logica:{tempo:220,wave:'square',notes:[262,294,330,349,392,440,392,349]},
+    quiz:{tempo:380,wave:'triangle',notes:[247,311,370,466,370,311,277,349]},
+    finale:{tempo:330,wave:'triangle',notes:[262,330,392,523,659,523,392,330]},
+    regali:{tempo:400,wave:'sine',notes:[294,370,440,587,440,370,330,415]}
+  };
 
   function load() { try { return {...initial, ...JSON.parse(localStorage.getItem(STORAGE)||'{}')}; } catch { return {...initial}; } }
   function save() { localStorage.setItem(STORAGE, JSON.stringify(state)); }
   function clearTimers() { timers.forEach(clearTimeout); intervals.forEach(clearInterval); timers=[]; intervals=[]; }
   function later(fn,ms) { const id=setTimeout(fn,ms); timers.push(id); return id; }
   function showToast(message) { toast.textContent=message; toast.classList.add('show'); later(()=>toast.classList.remove('show'),2200); }
+  function getAudio(){ audio ||= new (window.AudioContext||window.webkitAudioContext)(); return audio; }
   function tone(freq=440,duration=.09,type='sine') {
     if (!state.sound) return;
-    audio ||= new (window.AudioContext||window.webkitAudioContext)();
+    getAudio();
     const o=audio.createOscillator(), g=audio.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(.07,audio.currentTime); g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration); o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime+duration);
+  }
+  function stopMusic(){ musicGeneration++;if(musicTimer)clearInterval(musicTimer);musicTimer=null;musicStep=0; }
+  function startMusic(key){
+    currentMusicKey=key;stopMusic();if(!state.sound)return;const generation=musicGeneration;
+    const context=getAudio(),track=musicTracks[key]||musicTracks.cup;
+    const playNote=()=>{if(!state.sound)return;const now=context.currentTime,note=track.notes[musicStep%track.notes.length];const oscillator=context.createOscillator(),gain=context.createGain();oscillator.type=track.wave;oscillator.frequency.value=note;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.018,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+Math.min(.34,track.tempo/1000*.8));oscillator.connect(gain).connect(context.destination);oscillator.start(now);oscillator.stop(now+.38);if(musicStep%4===0){const bass=context.createOscillator(),bassGain=context.createGain();bass.type='sine';bass.frequency.value=note/2;bassGain.gain.setValueAtTime(.012,now);bassGain.gain.exponentialRampToValueAtTime(.0001,now+.3);bass.connect(bassGain).connect(context.destination);bass.start(now);bass.stop(now+.32);}musicStep++;};
+    const begin=()=>{if(generation!==musicGeneration||key!==currentMusicKey||!state.sound)return;playNote();musicTimer=setInterval(playNote,track.tempo);};
+    if(context.state==='suspended')context.resume().then(begin).catch(()=>{});else begin();
   }
   function finish(id) { if(!state.completed.includes(id)) state.completed.push(id); save(); tone(740,.15); later(()=>{ confetti(); renderCup(); },650); }
   function confetti() { for(let i=0;i<35;i++){ const e=document.createElement('i'); e.className='confetti'; e.style.left=Math.random()*100+'vw'; e.style.background=['#0879f9','#05070c','#f4c95d','#fff'][i%4]; e.style.animationDelay=Math.random()*.5+'s'; document.body.append(e); later(()=>e.remove(),3200); } }
   function progress() { return Math.round(state.completed.length/games.length*100); }
-  function shell(game, content, instruction) { app.innerHTML=`<section class="panel"><div class="game-head"><div class="challenge-icon">${game.icon}</div><div><div class="eyebrow">SFIDA ${games.indexOf(game)+1} DI 6</div><h2>${game.title}</h2></div></div><p class="instruction">${instruction}</p>${content}<div id="game-status" class="status" aria-live="polite"></div></section>`; app.focus(); }
+  function shell(game, content, instruction) { startMusic(game.id);app.innerHTML=`<section class="panel"><div class="game-head"><div class="challenge-icon">${game.icon}</div><div><div class="eyebrow">SFIDA ${games.indexOf(game)+1} DI 6</div><h2>${game.title}</h2></div></div><p class="instruction">${instruction}</p>${content}<div id="game-status" class="status" aria-live="polite"></div></section>`; app.focus(); }
   function status(text) { const e=document.querySelector('#game-status'); if(e)e.textContent=text; }
 
   function renderWelcome() {
-    clearTimers(); app.innerHTML=`<section class="hero"><div class="eyebrow">20 AGOSTO 2026 · UNA GIORNATA SPECIALE</div><h1>Buon <span class="age">58°</span><br>compleanno!</h1><p class="lead">Sei convocata per la più importante sfida nerazzurra dell’anno: sei prove di memoria, musica, logica e passione interista.</p><div class="actions"><button id="start" class="button gold">Entra in campo</button></div><p class="instruction">Niente paura: puoi riprovare ogni sfida e il regalo non dipende dal punteggio.</p></section>`;
-    document.querySelector('#start').onclick=()=>{state.welcomed=true;save();renderCup();};
+    clearTimers();startMusic('welcome'); app.innerHTML=`<section class="hero"><div class="eyebrow">20 AGOSTO 2026 · UNA GIORNATA SPECIALE</div><h1>Buon <span class="age">58°</span><br>compleanno!</h1><p class="lead">Sei convocata per la più importante sfida nerazzurra dell’anno: sei prove di memoria, musica, logica e passione interista.</p><div class="actions"><button id="start" class="button gold">Entra in campo</button></div><p class="instruction">Niente paura: puoi riprovare ogni sfida e il regalo non dipende dal punteggio.</p></section>`;
+    document.querySelector('#start').onclick=()=>{getAudio().resume();state.welcomed=true;save();renderCup();};
   }
   function renderCup() {
-    clearTimers(); const unlocked=state.completed.length===games.length;
+    clearTimers();startMusic('cup'); const unlocked=state.completed.length===games.length;
     app.innerHTML=`<section><div class="eyebrow">COPPA DELLA MAMMA NERAZZURRA</div><h1>La sfida della mente</h1><div class="progress-wrap"><div class="progress-copy"><span>${state.completed.length} sfide completate</span><span>${progress()}%</span></div><div class="progress"><span style="width:${progress()}%"></span></div></div><div class="cup-grid">${games.map(g=>`<button class="challenge ${state.completed.includes(g.id)?'done':''}" data-game="${g.id}"><span class="challenge-icon">${g.icon}</span><span><strong>${g.title}</strong><small>${g.note}</small></span><span class="challenge-state">${state.completed.includes(g.id)?'★':'›'}</span></button>`).join('')}</div><div class="actions"><button id="reward" class="button gold" ${unlocked?'':'disabled'}>${unlocked?'Apri la sala dei regali':'Completa le 6 sfide'}</button></div></section>`;
     app.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>startGame(b.dataset.game)); document.querySelector('#reward').onclick=()=>renderCelebration();
   }
@@ -60,24 +81,30 @@
   }
   function gamePasses() {
     const game=games[2];
-    const roles=[
-      {name:'Portiere',short:'POR',x:50,y:91}, {name:'Difensore centrale',short:'DC',x:50,y:73},
-      {name:'Terzino destro',short:'TD',x:84,y:70}, {name:'Terzino sinistro',short:'TS',x:16,y:70},
-      {name:'Centrocampista centrale',short:'CC',x:50,y:48}, {name:'Ala destra',short:'AD',x:82,y:32},
-      {name:'Ala sinistra',short:'AS',x:18,y:32}, {name:'Centravanti',short:'ATT',x:50,y:12}
+    const playerPool=[
+      {name:'Josep Martínez',role:'Portiere',icon:'🧤'},
+      {name:'Manuel Akanji',role:'Difensore',icon:'🛡️'},
+      {name:'Yann Bisseck',role:'Difensore',icon:'🛡️'},
+      {name:'Federico Dimarco',role:'Difensore',icon:'🛡️'},
+      {name:'Alessandro Bastoni',role:'Difensore',icon:'🛡️'},
+      {name:'Nicolò Barella',role:'Centrocampista',icon:'⚙️'},
+      {name:'Hakan Çalhanoğlu',role:'Centrocampista',icon:'⚙️'},
+      {name:'Petar Sučić',role:'Centrocampista',icon:'⚙️'},
+      {name:'Lautaro Martínez',role:'Attaccante',icon:'⚽'},
+      {name:'Marcus Thuram',role:'Attaccante',icon:'⚽'}
     ];
-    let round=0, score=0, target=null;
-    shell(game,`<div class="tactics-meta"><span id="tactics-round">Ruolo 1 di 5</span><span id="tactics-score">0 punti</span></div><div class="pitch tactical-pitch">${roles.map((r,i)=>`<button class="player tactical-player" data-role="${i}" style="left:${r.x}%;top:${r.y}%"><span>${r.short}</span></button>`).join('')}</div><div class="role-question">Dove gioca il <strong id="role-name"></strong>?</div>`,'Guarda la formazione e tocca la posizione corretta per il ruolo richiesto. Il portiere difende la porta in basso.');
-    const players=[...app.querySelectorAll('[data-role]')];
-    function next(){if(round===5){status(`${score} su 5: la panchina è tua! ★`);players.forEach(p=>p.disabled=true);finish(game.id);return;}const previous=target;do{target=Math.floor(Math.random()*roles.length);}while(target===previous);document.querySelector('#role-name').textContent=roles[target].name;document.querySelector('#tactics-round').textContent=`Ruolo ${round+1} di 5`;document.querySelector('#tactics-score').textContent=`${score} punti`;players.forEach(p=>{p.classList.remove('correct-role','wrong-role');p.disabled=false;});status('Scegli una posizione');}
-    players.forEach((p,i)=>p.onclick=()=>{players.forEach(x=>x.disabled=true);if(i===target){score++;p.classList.add('correct-role');tone(690,.12);status('Posizione corretta!');}else{p.classList.add('wrong-role');players[target].classList.add('correct-role');status(`Era qui: ${roles[target].short}`);}round++;later(next,850);});
-    next();
+    const questions=[...playerPool].sort(()=>Math.random()-.5).slice(0,5);
+    const roles=['Portiere','Difensore','Centrocampista','Attaccante'];
+    let round=0,score=0;
+    shell(game,`<div class="tactics-meta"><span id="player-round">Giocatore 1 di 5</span><span id="player-score">0 punti</span></div><div id="player-card" class="player-card"></div><div id="player-roles" class="choices"></div>`,'Per cinque giocatori dell’Inter, indovina il ruolo occupato in campo.');
+    function draw(){if(round===questions.length){status(`${score} su 5: conosci bene la rosa! ★`);finish(game.id);return;}const player=questions[round];document.querySelector('#player-round').textContent=`Giocatore ${round+1} di 5`;document.querySelector('#player-score').textContent=`${score} punti`;document.querySelector('#player-card').innerHTML=`<span>${player.icon}</span><strong>${player.name}</strong><small>Qual è il suo ruolo?</small>`;const box=document.querySelector('#player-roles');box.innerHTML=roles.map(role=>`<button class="choice" data-role="${role}">${role}</button>`).join('');box.querySelectorAll('[data-role]').forEach(button=>button.onclick=()=>{box.querySelectorAll('[data-role]').forEach(item=>item.disabled=true);if(button.dataset.role===player.role){score++;button.classList.add('correct');tone(690,.12);status('Esatto!');}else{button.classList.add('wrong');box.querySelector(`[data-role="${player.role}"]`).classList.add('correct');status(`${player.name} è ${player.role.toLowerCase()}.`);}round++;later(draw,900);});}
+    draw();
   }
   function gameRhythm() {
     const game=games[3], patterns=[[1,1,2,1],[2,1,1,2],[1,2,2,1]], answer=Math.floor(Math.random()*3); let played=false;
     shell(game,`<div class="rhythm-stage"><div class="record">♫</div></div><div class="actions"><button id="listen" class="button">Ascolta il ritmo</button></div><div class="choices">${patterns.map((p,i)=>`<button class="choice" data-rhythm="${i}">${p.map(n=>n===1?'TA':'TAA').join(' · ')}</button>`).join('')}</div>`,'Ascolta il ritmo originale e scegli la sequenza che gli corrisponde.');
     const record=document.querySelector('.record');
-    document.querySelector('#listen').onclick=()=>{played=true;status('Ascolta…');let t=250;patterns[answer].forEach(n=>{later(()=>{record.classList.add('beat');tone(n===1?520:360,n===1?.12:.28);later(()=>record.classList.remove('beat'),150);},t);t+=n===1?430:680;});later(()=>status('Qual era il ritmo?'),t);};
+    document.querySelector('#listen').onclick=()=>{played=true;stopMusic();status('Ascolta…');let t=250;patterns[answer].forEach(n=>{later(()=>{record.classList.add('beat');tone(n===1?520:360,n===1?.12:.28);later(()=>record.classList.remove('beat'),150);},t);t+=n===1?430:680;});later(()=>{status('Qual era il ritmo?');startMusic('ritmo');},t);};
     app.querySelectorAll('[data-rhythm]').forEach(b=>b.onclick=()=>{if(!played){showToast('Prima ascolta il ritmo');return;}if(+b.dataset.rhythm===answer){b.classList.add('correct');status('Hai il ritmo nel cuore! ★');finish(game.id);}else{b.classList.add('wrong');status('Non proprio: puoi riascoltarlo e riprovare.');later(()=>b.classList.remove('wrong'),700);}});
   }
   function gameLogic() {
@@ -107,12 +134,12 @@
       app.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{const ok=+b.dataset.answer===x.ok;if(ok){correct++;b.classList.add('correct');tone(720,.12);}else{b.classList.add('wrong');app.querySelector(`[data-answer="${x.ok}"]`).classList.add('correct');}app.querySelectorAll('[data-answer]').forEach(z=>z.disabled=true);document.querySelector('#explanation').innerHTML=`<p class="explanation"><strong>${ok?'Esatto!':'La risposta giusta era '+x.a[x.ok]+'.'}</strong><br>${x.e}</p>`;later(()=>{index++;if(index<qs.length)draw();else{status(`${correct} su ${qs.length}: passione nerazzurra! ★`);finish(game.id);}},1500);});
     } draw();
   }
-  function renderCelebration(){clearTimers();app.innerHTML=`<section class="celebration"><div class="eyebrow">TUTTE LE SFIDE SUPERATE</div><div class="trophy">🏆</div><h1>Campionessa!</h1><p class="lead">Buon 58° compleanno! Questa coppa è per te, con tutto il nostro amore.</p><p><strong>Bruno, Alessandro, Christian, Carmen ed Helene</strong></p><div class="actions"><button id="choose" class="button gold">Scegli due regali</button></div></section>`;confetti();document.querySelector('#choose').onclick=renderGifts;}
+  function renderCelebration(){clearTimers();startMusic('finale');app.innerHTML=`<section class="celebration"><div class="eyebrow">TUTTE LE SFIDE SUPERATE</div><div class="trophy">🏆</div><h1>Campionessa!</h1><p class="lead">Buon 58° compleanno! Questa coppa è per te, con tutto il nostro amore.</p><p><strong>Bruno, Alessandro, Christian, Carmen ed Helene</strong></p><div class="actions"><button id="choose" class="button gold">Scegli due regali</button></div></section>`;confetti();document.querySelector('#choose').onclick=renderGifts;}
   const giftOptions=[['cornice','🖼️','Cornice digitale'],['maglia','👕','Maglia Inter ufficiale'],['camomilla','🛍️','Buono per il negozio Camomilla'],['viaggio','✈️','Viaggio + biglietto partita Inter']];
-  function renderGifts(){clearTimers();app.innerHTML=`<section><div class="eyebrow">SALA DEI REGALI</div><h1>Scegline due</h1><p class="lead">Oggi sei tu a decidere. Tocca due regali, controlla la scelta e poi conferma.</p><div class="gift-grid">${giftOptions.map(([id,icon,name])=>`<button class="gift ${state.gifts.includes(id)?'selected':''}" data-gift="${id}"><span class="gift-icon">${icon}</span><strong>${name}</strong><span class="gift-check">${state.gifts.includes(id)?'✓':''}</span></button>`).join('')}</div><div class="selection-count">Hai scelto <span id="gift-count">${state.gifts.length}</span> regali su 2</div><div class="actions"><button id="confirm-gifts" class="button gold" ${state.gifts.length===2?'':'disabled'}>Conferma la scelta</button></div></section>`;
+  function renderGifts(){clearTimers();startMusic('regali');app.innerHTML=`<section><div class="eyebrow">SALA DEI REGALI</div><h1>Scegline due</h1><p class="lead">Oggi sei tu a decidere. Tocca due regali, controlla la scelta e poi conferma.</p><div class="gift-grid">${giftOptions.map(([id,icon,name])=>`<button class="gift ${state.gifts.includes(id)?'selected':''}" data-gift="${id}"><span class="gift-icon">${icon}</span><strong>${name}</strong><span class="gift-check">${state.gifts.includes(id)?'✓':''}</span></button>`).join('')}</div><div class="selection-count">Hai scelto <span id="gift-count">${state.gifts.length}</span> regali su 2</div><div class="actions"><button id="confirm-gifts" class="button gold" ${state.gifts.length===2?'':'disabled'}>Conferma la scelta</button></div></section>`;
     app.querySelectorAll('[data-gift]').forEach(b=>b.onclick=()=>{const id=b.dataset.gift,idx=state.gifts.indexOf(id);if(idx>=0)state.gifts.splice(idx,1);else if(state.gifts.length<2)state.gifts.push(id);else{showToast('Hai già scelto due regali');return;}save();renderGifts();});document.querySelector('#confirm-gifts').onclick=()=>{state.confirmed=true;save();renderFinal();};
   }
-  function renderFinal(){clearTimers();const names=state.gifts.map(id=>giftOptions.find(g=>g[0]===id)[2]);app.innerHTML=`<section class="panel final-card"><div class="eyebrow">SCELTA UFFICIALE</div><h1>Affare fatto!</h1><p>La campionessa ha scelto:</p><div class="final-gifts">${names.map(n=>`★ ${n}`).join('<br>')}</div><p>Mostra questa schermata a Bruno, Alessandro, Christian, Carmen ed Helene. La dirigenza provvederà!</p><div class="actions"><button id="share" class="button gold">Condividi la scelta</button><button id="edit" class="button secondary">Modifica</button></div></section>`;confetti();document.querySelector('#edit').onclick=()=>{state.confirmed=false;save();renderGifts();};document.querySelector('#share').onclick=async()=>{const text=`Per il mio 58° compleanno ho scelto: ${names.join(' e ')}! 💙🖤`;try{if(navigator.share)await navigator.share({title:'La mia scelta nerazzurra',text});else{await navigator.clipboard.writeText(text);showToast('Scelta copiata negli appunti');}}catch{}};}
+  function renderFinal(){clearTimers();startMusic('finale');const names=state.gifts.map(id=>giftOptions.find(g=>g[0]===id)[2]);app.innerHTML=`<section class="panel final-card"><div class="eyebrow">SCELTA UFFICIALE</div><h1>Affare fatto!</h1><p>La campionessa ha scelto:</p><div class="final-gifts">${names.map(n=>`★ ${n}`).join('<br>')}</div><p>Mostra questa schermata a Bruno, Alessandro, Christian, Carmen ed Helene. La dirigenza provvederà!</p><div class="actions"><button id="share" class="button gold">Condividi la scelta</button><button id="edit" class="button secondary">Modifica</button></div></section>`;confetti();document.querySelector('#edit').onclick=()=>{state.confirmed=false;save();renderGifts();};document.querySelector('#share').onclick=async()=>{const text=`Per il mio 58° compleanno ho scelto: ${names.join(' e ')}! 💙🖤`;try{if(navigator.share)await navigator.share({title:'La mia scelta nerazzurra',text});else{await navigator.clipboard.writeText(text);showToast('Scelta copiata negli appunti');}}catch{}};}
 
   function openDebug(){const box=document.querySelector('#debug-actions');box.innerHTML=games.map(g=>`<button type="button" class="button secondary" data-debug-game="${g.id}">${g.icon} ${g.title}</button>`).join('')+`<button type="button" class="button gold" data-debug="reward">Sala regali</button><button type="button" class="button secondary" data-debug="complete">Completa tutto</button><button type="button" class="button secondary" data-debug="reset">Azzera dati</button>`;box.querySelectorAll('[data-debug-game]').forEach(b=>b.onclick=()=>{debugDialog.close();startGame(b.dataset.debugGame);});box.querySelector('[data-debug="reward"]').onclick=()=>{debugDialog.close();renderGifts();};box.querySelector('[data-debug="complete"]').onclick=()=>{state.completed=games.map(g=>g.id);save();debugDialog.close();renderCup();};box.querySelector('[data-debug="reset"]').onclick=()=>{state={...initial};save();debugDialog.close();renderWelcome();};debugDialog.showModal();}
   document.querySelector('.brand').addEventListener('click',()=>{titleTaps++;if(titleTaps>=7){titleTaps=0;openDebug();}later(()=>titleTaps=0,2500);});
@@ -121,7 +148,7 @@
     if (debugDialog.open) debugDialog.close();
     renderWelcome();
   });
-  document.querySelector('#sound-button').onclick=()=>{state.sound=!state.sound;save();document.querySelector('#sound-button').textContent=state.sound?'♪':'×';showToast(state.sound?'Suoni attivi':'Suoni disattivati');if(state.sound)tone(520);};
+  document.querySelector('#sound-button').onclick=()=>{state.sound=!state.sound;save();document.querySelector('#sound-button').textContent=state.sound?'♪':'×';showToast(state.sound?'Musica e suoni attivi':'Musica e suoni disattivati');if(state.sound){tone(520);startMusic(currentMusicKey);}else stopMusic();};
   if(new URLSearchParams(location.search).get('debug')==='58') later(openDebug,200);
   document.querySelector('#sound-button').textContent=state.sound?'♪':'×';
   if(state.confirmed&&state.gifts.length===2)renderFinal();else if(state.welcomed)renderCup();else renderWelcome();
