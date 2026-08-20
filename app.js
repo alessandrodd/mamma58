@@ -16,19 +16,8 @@
   let state = load();
   let timers = [], intervals = [];
   let titleTaps = 0;
-  let audio, audioUnlocked=false, audioUnlocking=false, musicTimer, musicStep=0, musicGeneration=0, currentMusicKey='welcome';
-  const musicTracks={
-    welcome:{tempo:430,wave:'sine',notes:[262,330,392,330,294,349,440,349]},
-    cup:{tempo:310,wave:'triangle',notes:[196,247,294,392,294,247,220,277]},
-    sequenza:{tempo:270,wave:'square',notes:[262,330,392,523,392,330,294,370]},
-    coppie:{tempo:360,wave:'triangle',notes:[220,277,330,277,247,294,370,294]},
-    passaggi:{tempo:300,wave:'sawtooth',notes:[196,196,294,247,330,294,247,220]},
-    ritmo:{tempo:240,wave:'sine',notes:[330,494,440,392,330,392,440,587]},
-    logica:{tempo:220,wave:'square',notes:[262,294,330,349,392,440,392,349]},
-    quiz:{tempo:380,wave:'triangle',notes:[247,311,370,466,370,311,277,349]},
-    finale:{tempo:330,wave:'triangle',notes:[262,330,392,523,659,523,392,330]},
-    regali:{tempo:400,wave:'sine',notes:[294,370,440,587,440,370,330,415]}
-  };
+  let audio, audioUnlocked=false, audioUnlocking=false, musicPlayer, currentMusicKey='welcome';
+  const musicFiles={welcome:'welcome',cup:'cup',sequenza:'sequenza',coppie:'coppie',passaggi:'passaggi',ritmo:'ritmo',logica:'logica',quiz:'quiz',finale:'finale',regali:'regali'};
 
   function load() { try { return {...initial, ...JSON.parse(localStorage.getItem(STORAGE)||'{}')}; } catch { return {...initial}; } }
   function save() { localStorage.setItem(STORAGE, JSON.stringify(state)); }
@@ -39,29 +28,33 @@
     if(!audio){const AudioContextClass=window.AudioContext||window.webkitAudioContext;if(!AudioContextClass)return null;audio=new AudioContextClass();}
     return audio;
   }
+  function getMusicPlayer(){
+    if(!musicPlayer){musicPlayer=new Audio();musicPlayer.loop=true;musicPlayer.preload='none';musicPlayer.volume=.32;musicPlayer.setAttribute('playsinline','');}
+    return musicPlayer;
+  }
+  async function playMusic(){
+    if(!state.sound)return false;const player=getMusicPlayer(),file=musicFiles[currentMusicKey]||musicFiles.cup;const wanted=new URL(`assets/music/${file}.wav`,location.href).href;
+    if(player.src!==wanted){player.src=wanted;player.load();}
+    try{await player.play();return !player.paused;}catch{return false;}
+  }
   async function unlockAudio(){
     if(!state.sound||audioUnlocking)return audioUnlocked;
-    if(audioUnlocked&&audio&&audio.state==='running')return true;
-    const context=getAudio();if(!context)return false;audioUnlocking=true;
+    audioUnlocking=true;let mediaStarted=false;
     try{
-      const buffer=context.createBuffer(1,1,22050),source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);source.start(0);
-      if(context.state!=='running')await context.resume();
-      audioUnlocked=context.state==='running';
-    }catch{audioUnlocked=false;}finally{audioUnlocking=false;}
-    if(audioUnlocked)startMusic(currentMusicKey);
+      mediaStarted=await playMusic();
+      const context=getAudio();
+      if(context){const buffer=context.createBuffer(1,1,22050),source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);source.start(0);if(context.state!=='running')await context.resume();}
+      audioUnlocked=mediaStarted||(context&&context.state==='running');
+    }catch{audioUnlocked=mediaStarted;}finally{audioUnlocking=false;}
     return audioUnlocked;
   }
   function tone(freq=440,duration=.09,type='sine') {
     if (!state.sound||!audioUnlocked||!audio) return;
     const o=audio.createOscillator(), g=audio.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(.09,audio.currentTime); g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration); o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime+duration);
   }
-  function stopMusic(){ musicGeneration++;if(musicTimer)clearInterval(musicTimer);musicTimer=null;musicStep=0; }
+  function stopMusic(){ if(musicPlayer)musicPlayer.pause(); }
   function startMusic(key){
-    currentMusicKey=key;stopMusic();if(!state.sound||!audioUnlocked||!audio)return;const generation=musicGeneration;
-    const context=audio,track=musicTracks[key]||musicTracks.cup;
-    const playNote=()=>{if(!state.sound||context.state!=='running')return;const now=context.currentTime,note=track.notes[musicStep%track.notes.length];const oscillator=context.createOscillator(),gain=context.createGain();oscillator.type=track.wave;oscillator.frequency.value=note;gain.gain.setValueAtTime(.0001,now);gain.gain.exponentialRampToValueAtTime(.035,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+Math.min(.34,track.tempo/1000*.8));oscillator.connect(gain).connect(context.destination);oscillator.start(now);oscillator.stop(now+.38);if(musicStep%4===0){const bass=context.createOscillator(),bassGain=context.createGain();bass.type='sine';bass.frequency.value=note/2;bassGain.gain.setValueAtTime(.02,now);bassGain.gain.exponentialRampToValueAtTime(.0001,now+.3);bass.connect(bassGain).connect(context.destination);bass.start(now);bass.stop(now+.32);}musicStep++;};
-    const begin=()=>{if(generation!==musicGeneration||key!==currentMusicKey||!state.sound)return;playNote();musicTimer=setInterval(playNote,track.tempo);};
-    if(context.state==='running')begin();
+    currentMusicKey=key;if(!state.sound)return;playMusic();
   }
   function finish(id) { if(!state.completed.includes(id)) state.completed.push(id); save(); tone(740,.15); later(()=>{ confetti(); renderCup(); },650); }
   function confetti() { for(let i=0;i<35;i++){ const e=document.createElement('i'); e.className='confetti'; e.style.left=Math.random()*100+'vw'; e.style.background=['#0879f9','#05070c','#f4c95d','#fff'][i%4]; e.style.animationDelay=Math.random()*.5+'s'; document.body.append(e); later(()=>e.remove(),3200); } }
@@ -171,7 +164,7 @@
   document.addEventListener('pointerdown',unlockAudio,{capture:true});
   document.addEventListener('touchend',unlockAudio,{capture:true,passive:true});
   document.addEventListener('keydown',unlockAudio,{capture:true});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMusic();else if(audioUnlocked&&audio&&audio.state==='running')startMusic(currentMusicKey);});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMusic();else if(audioUnlocked)playMusic();});
   if(new URLSearchParams(location.search).get('debug')==='58') later(openDebug,200);
   document.querySelector('#sound-button').textContent=state.sound?'♪':'×';
   if(state.confirmed&&state.gifts.length===2)renderFinal();else if(state.welcomed)renderCup();else renderWelcome();
